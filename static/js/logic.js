@@ -11,6 +11,13 @@ var earthQuakeMap = L.map("map", {
     accessToken: API_KEY
   }).addTo(earthQuakeMap);
 
+  
+d3.json(TECTONIC_PLATES_URL, data => {
+  L.geoJson(data, {
+     color: "#ffa500"
+  }).addTo(earthQuakeMap);
+});
+
 d3.json(DATA_URL, data => {
   L.geoJson(data, {
     pointToLayer: function (feature, latLong) {

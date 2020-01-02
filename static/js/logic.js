@@ -1,25 +1,31 @@
-// Create a map object
-var earthQuakeMap = L.map("map", {
-    center: [37.0902, -95.7129],
-    zoom: 5
-  });
-  
-  L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+
+var outdoorMap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
     attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
     maxZoom: 18,
-    id: "mapbox.streets-basic",
+    id: "mapbox.outdoors",
     accessToken: API_KEY
-  }).addTo(earthQuakeMap);
+  });
 
-  
-d3.json(TECTONIC_PLATES_URL, data => {
-  L.geoJson(data, {
-     color: "#ffa500"
-  }).addTo(earthQuakeMap);
+var satelliteMap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+  attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+  maxZoom: 18,
+  id: "mapbox.satellite",
+  accessToken: API_KEY
 });
 
+var greyScaleMap =  L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    maxZoom: 18,
+    id: "mapbox.light",
+    accessToken: API_KEY
+  })
+  //.addTo(earthQuakeMap);
+
+var faultLines = {};
+var earthquakes = {};
+
 d3.json(DATA_URL, data => {
-  L.geoJson(data, {
+  earthquakes = L.geoJson(data, {
     pointToLayer: function (feature, latLong) {
       var color = deriveColor(feature.properties.mag.toFixed(3))
       var currentMarkerProperties = {
@@ -34,8 +40,15 @@ d3.json(DATA_URL, data => {
     onEachFeature: function(feature, layer) {
       layer.bindPopup(createPopup(feature.properties));
     }
-    }).addTo(earthQuakeMap);
-  addLegend(earthQuakeMap);
+    })
+
+    d3.json(TECTONIC_PLATES_URL, data => {
+      faultLines = L.geoJson(data, {
+         color: "#ffa500"
+      })     
+      createMap();
+    });
+
 });
 
 function deriveColor(magnitude) {
@@ -74,4 +87,34 @@ function addLegend(earthQuakeMap) {
     return div;
   }  
   legend.addTo(earthQuakeMap);
+}
+
+function createMap() {
+//define baseMap object to hold base layers
+var baseMaps = {
+  "Satellite": satelliteMap,
+  "GreyScale": greyScaleMap,
+  "Outdoor" : outdoorMap
+}  
+
+// create overlayObject to hold our overlay layer
+var overlayMaps = {
+  "Fault Line": faultLines,
+  "Earthquakes" : earthquakes
+}
+
+// Create a map object
+var defaultMap = L.map("map", {
+  center: [37.0902, -95.7129],
+  zoom: 5,
+  layers: [outdoorMap, faultLines, earthquakes]
+});
+
+addLegend(defaultMap);
+
+// Pass our map layers into our layer control
+// Add the layer control to the map
+L.control.layers(baseMaps, overlayMaps, {
+  collapsed: false
+}).addTo(defaultMap);
 }

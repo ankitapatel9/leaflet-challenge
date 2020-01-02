@@ -1,8 +1,6 @@
-var faultLines = {};
-var earthquakes = {};
 
-d3.json(DATA_URL, data => {
-  earthquakes = L.geoJson(data, {
+function createEarthquakeLayer(earthquakeData) {
+  return L.geoJson(earthquakeData, {
     pointToLayer: function (feature, latLong) {
       var color = deriveColor(feature.properties.mag.toFixed(3))
       var currentMarkerProperties = {
@@ -18,16 +16,7 @@ d3.json(DATA_URL, data => {
       layer.bindPopup(createPopup(feature.properties));
     }
   });
-
-  d3.json(TECTONIC_PLATES_URL, data => {
-    const orangeColor = "#ffa500"
-    faultLines = L.geoJson(data, {
-      color: orangeColor
-    });
-    createMap();
-  });
-
-});
+}
 
 function deriveColor(magnitude) {
   return magnitude >= 5 ? '#EF3E3E' :
@@ -49,6 +38,33 @@ function createPopup(details) {
   `;
 }
 
+function addLegend(map) {
+  var legend = L.control({
+    position: 'bottomright'
+  });
+  legend.onAdd = function (map) {
+
+    var div = L.DomUtil.create('legend', 'legend'),
+      labels = ["0-1", "1-2", "2-3", "3-4", "4-5", "5+"];
+
+    div.innerHTML += `<b> Magnitude</b><br>`;
+    // loop through our density intervals and generate a label with a colored square for each interval  
+    const totalLegends = 6
+    for (var i = 0; i < totalLegends; i++) {
+      div.innerHTML += '<div><i style="background:' + deriveColor(i) + '"> </i>' + labels[i] + '</div><br>';
+    }
+    return div;
+  }
+  legend.addTo(map);
+}
+
+function createFaultLineLayer(faultLineData) {
+  const orangeColor = "#ffa500"
+  return L.geoJson(faultLineData, {
+    color: orangeColor
+  });
+}
+
 function generateTileLayer(mapId) {
   const apiUrl = "https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}";
   return L.tileLayer(apiUrl, {
@@ -59,7 +75,7 @@ function generateTileLayer(mapId) {
   });
 }
 
-function createMap() {
+function createMap(earthquakes, faultLines) {
 
   //define baseMap object to hold base layers
   var baseMaps = {
@@ -90,22 +106,14 @@ function createMap() {
   }).addTo(defaultMap);
 }
 
-function addLegend(map) {
-  var legend = L.control({
-    position: 'bottomright'
-  });
-  legend.onAdd = function (map) {
+async function main() {
+  var earthquakeData = await d3.json(DATA_URL);
+  var earthquakes = createEarthquakeLayer(earthquakeData);
 
-    var div = L.DomUtil.create('legend', 'legend'),
-      labels = ["0-1", "1-2", "2-3", "3-4", "4-5", "5+"];
+  var faultLineData = await d3.json(TECTONIC_PLATES_URL);
+  var faultLines = createFaultLineLayer(faultLineData);
 
-    div.innerHTML += `<b> Magnitude</b><br>`;
-    // loop through our density intervals and generate a label with a colored square for each interval  
-    const totalLegends = 6
-    for (var i = 0; i < totalLegends; i++) {
-      div.innerHTML += '<div><i style="background:' + deriveColor(i) + '"> </i>' + labels[i] + '</div><br>';
-    }
-    return div;
-  }
-  legend.addTo(map);
+  createMap(earthquakes, faultLines)
 }
+
+main();

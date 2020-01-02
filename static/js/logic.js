@@ -56,13 +56,13 @@ function addLegend(earthQuakeMap) {
   legend.onAdd = function (map) {
   
     var div = L.DomUtil.create('legend', 'legend'),
-        grades = [0,1,2,3,4,5],
         labels= ["0-1","1-2","2-3","3-4","4-5","5+"];
   
     div.innerHTML += `<b> Magnitude</b><br>`;
     // loop through our density intervals and generate a label with a colored square for each interval  
-    for (var i = 0; i < grades.length; i++) {
-        div.innerHTML += '<div><i style="background:' + deriveColor(grades[i]) + '"> </i>' + labels[i] + '</div><br>';
+    const totalLegends = 6
+    for (var i = 0; i < totalLegends; i++) {
+        div.innerHTML += '<div><i style="background:' + deriveColor(i) + '"> </i>' + labels[i] + '</div><br>';
     }
     return div;
   }  
